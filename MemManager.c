@@ -58,13 +58,7 @@ int main()
                     number_o = DPageOut(disk, proc - 'A', vpn);
                     vpn_k = node->vpn;
                     proc_k = node->proc + 'A';
-
-                    // clear kicked node's TLB and PT
-                    TLBClear(TLB, node->vpn, pfn);
                     PTUpdate(PT, node->proc, node->vpn, 0, 0);
-
-                    // update asked vpn
-                    PTUpdate(PT, proc - 'A', vpn, pfn, 1);
                     if (page_policy[0] != 'C')
                         VPInsert(victim, proc - 'A', vpn);
                 }
@@ -89,17 +83,13 @@ int main()
                         number_o = -1;
                         vpn_k = node->vpn;
                         proc_k = node->proc + 'A';
-
-                        // clear kicked node's TLB and PT
-                        TLBClear(TLB, node->vpn, pfn);
                         PTUpdate(PT, node->proc, node->vpn, 0, 0);
-
-                        // update asked vpn
-                        PTUpdate(PT, proc - 'A', vpn, pfn, 1);
                         if (page_policy[0] != 'C')
                             VPInsert(victim, proc - 'A', vpn);
                     }
                 }
+                PTUpdate(PT, proc - 'A', vpn, pfn, 1); // update asked vpn
+                TLBClear(TLB, vpn_k, pfn);             // clear kicked node's TLB and PT
                 printf("%d, Evict %d of Process %c to %d, %d<<%d\n", pfn, vpn_k, proc_k, number_i, vpn, number_o);
             }
             TLBInsert(TLB, vpn, pfn, (tlb_policy[0] == 'L'));
