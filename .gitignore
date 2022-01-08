@@ -1,3 +1,4 @@
 *.o
 MemManager
 .vscode
+.DS_Store
