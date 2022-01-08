@@ -18,8 +18,9 @@ int main()
     // parse trace
     pasrse_config(tlb_policy, page_policy, frame_policy, &process_num, &virtual_num, &physical_num);
 
-    char proc, p_proc;                     // process, prev process
-    int pfn, vpn, number_o, number_i;      // physical frame, virtual page, disk block number out/in
+    char proc, p_proc, proc_k;             // process, prev process, process which kicked vpn belong
+    int pfn, vpn, vpn_k;                   // physical frame, virtual page, vpn kicked
+    int number_o, number_i;                // disk block number out/in
     Disk *disk = Dinit();                  // disk use to save page out vpn
     TLBUffer *TLB = TLBInit();             // TLB
     PTable *PT = PTInit(virtual_num);      // page table
@@ -55,8 +56,8 @@ int main()
                     pfn = PTGetPFN(PT, node->proc, node->vpn);
                     number_i = DPageIn(disk, node->proc, node->vpn);
                     number_o = DPageOut(disk, proc - 'A', vpn);
-                    printf("%d, Evict %d of Process %c to %d, %d<<%d\n", pfn, node->vpn, node->proc + 'A', number_i,
-                           vpn, number_o);
+                    vpn_k = node->vpn;
+                    proc_k = node->proc + 'A';
 
                     // clear kicked node's TLB and PT
                     TLBClear(TLB, node->vpn, pfn);
@@ -71,7 +72,10 @@ int main()
                 {
                     if (~(pfn = PMFindFree(phys))) // free space found
                     {
-                        printf("%d, Evict -1 of Process %c to -1, %d<<-1\n", pfn, proc, vpn);
+                        vpn_k = -1;
+                        proc_k = proc;
+                        number_i = -1;
+                        number_o = -1;
                         PMInsert(phys, pfn); // insert vpn into physical memory (only need to mark pfn used)
                         VPInsert(victim, proc - 'A', vpn);     // insert vpn into victim queue
                         PTUpdate(PT, proc - 'A', vpn, pfn, 1); // update page table vpn with pfn
@@ -82,8 +86,9 @@ int main()
                                                 frame_policy[0] == 'G'); // node which need to kick to disk
                         pfn = PTGetPFN(PT, node->proc, node->vpn);
                         number_i = DPageIn(disk, node->proc, node->vpn);
-                        printf("%d, Evict %d of Process %c to %d, %d<<-1\n", pfn, node->vpn, node->proc + 'A', number_i,
-                               vpn);
+                        number_o = -1;
+                        vpn_k = node->vpn;
+                        proc_k = node->proc + 'A';
 
                         // clear kicked node's TLB and PT
                         TLBClear(TLB, node->vpn, pfn);
@@ -95,6 +100,7 @@ int main()
                             VPInsert(victim, proc - 'A', vpn);
                     }
                 }
+                printf("%d, Evict %d of Process %c to %d, %d<<%d\n", pfn, vpn_k, proc_k, number_i, vpn, number_o);
             }
             TLBInsert(TLB, vpn, pfn, (tlb_policy[0] == 'L'));
             TLBHit(TLB, vpn);
