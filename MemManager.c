@@ -15,36 +15,37 @@ int main()
     // parse trace
     pasrse_config(tlb_policy, page_policy, frame_policy, &process_num, &virtual_num, &physical_num);
 
-    char proc, p_proc, proc_k;             // process, prev process, process which kicked vpn belong
-    int pfn, vpn, vpn_k;                   // physical frame, virtual page, vpn kicked
-    int number_o, number_i;                // disk block number out/in
-    Disk *disk = Dinit();                  // disk use to save page out vpn
-    TLBUffer *TLB = TLBInit();             // TLB
-    PTable *PT = PTInit(virtual_num);      // page table
-    PMemory *phys = PMinit(physical_num);  // physical mnemory
-    Queue *victim = QInit();               // victim page queue
-    FILE *trace = fopen("trace.txt", "r"); // trace file
+    char proc, p_proc, proc_k;                  // process, prev process, process which kicked vpn belong
+    int pfn, vpn, vpn_k;                        // physical frame, virtual page, vpn kicked
+    int number_o, number_i;                     // disk block number out/in
+    Disk *disk = Dinit();                       // disk use to save page out vpn
+    TLBUffer *TLB = TLBInit();                  // TLB
+    PTable *PT = PTInit(virtual_num);           // page table
+    PMemory *phys = PMinit(physical_num);       // physical mnemory
+    Queue *victim = QInit();                    // victim page queue
+    FILE *trace = fopen("trace.txt", "r");      // trace file
+    FILE *out = fopen("trace_output.txt", "w"); // trace output file
 
     while (~fscanf(trace, "Reference(%c, %d)\n", &proc, &vpn))
     {
         // flush TLB if process change
         if (proc != p_proc)
             TLB = TLBInit();
-        printf("Process %c, ", proc);
+        fprintf(out, "Process %c, ", proc);
 
         // memory manager
         if (~(pfn = TLBHit(TLB, vpn))) // TLB hit
-            printf("TLB Hit, %d=>%d\n", vpn, pfn);
+            fprintf(out, "TLB Hit, %d=>%d\n", vpn, pfn);
         else // TLB miss
         {
-            printf("TLB Miss, ");
+            fprintf(out, "TLB Miss, ");
             if (~(pfn = PTHit(PT, proc - 'A', vpn))) // page hit
             {
-                printf("Page Hit, %d=>%d\n", vpn, pfn);
+                fprintf(out, "Page Hit, %d=>%d\n", vpn, pfn);
             }
             else // page fault
             {
-                printf("Page Fault, ");
+                fprintf(out, "Page Fault, ");
                 if (PTIsInDisk(PT, proc - 'A', vpn))
                 {
                     // vpn is in disk, need to move it back to physical memory
@@ -87,11 +88,11 @@ int main()
                 }
                 PTUpdate(PT, proc - 'A', vpn, pfn, 1); // update asked vpn
                 TLBClear(TLB, vpn_k, pfn);             // clear kicked node's TLB and PT
-                printf("%d, Evict %d of Process %c to %d, %d<<%d\n", pfn, vpn_k, proc_k, number_i, vpn, number_o);
+                fprintf(out, "%d, Evict %d of Process %c to %d, %d<<%d\n", pfn, vpn_k, proc_k, number_i, vpn, number_o);
             }
             TLBInsert(TLB, vpn, pfn, (tlb_policy[0] == 'L'));
             TLBHit(TLB, vpn);
-            printf("Process %c, TLB Hit, %d=>%d\n", proc, vpn, pfn);
+            fprintf(out, "Process %c, TLB Hit, %d=>%d\n", proc, vpn, pfn);
         }
         QClockUpdate(victim, proc - 'A', vpn);
         p_proc = proc;
