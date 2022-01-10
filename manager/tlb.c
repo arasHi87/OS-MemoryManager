@@ -82,7 +82,7 @@ void TLBClear(TLBUffer *TLB, int vpn, int pfn)
     {
         if (TLB->arr[i] && TLB->arr[i]->vpn == vpn && TLB->arr[i]->pfn == pfn)
         {
-            TLB->arr[i]->vpn = TLB->arr[i]->pfn = 0;
+            TLB->arr[i] = NULL;
             return;
         }
     }
